@@ -1,13 +1,10 @@
 catalogMode: prefer
-ignoreWorkspaceRootCheck: true
-shellEmulator: true
-trustPolicy: no-downgrade
 
-packages:
-  - playground
-  - docs
-  - packages/*
-  - examples/*
+ignoreWorkspaceRootCheck: true
+
+shellEmulator: true
+
+trustPolicy: no-downgrade
 
 catalogs:
   cli:
@@ -31,6 +28,27 @@ catalogs:
     yaml: ^2.8.2
   types:
     '@types/node': ^25.0.1
+  conflicts_age-encryption_h0_3_0:
+    age-encryption: ^0.3.0
+  conflicts_chalk_h5_0_0:
+    chalk: ^5.0.0
+  conflicts_commander_h12_0_0:
+    commander: ^12.0.0
+  conflicts_fs-extra_h11_0_0:
+    fs-extra: ^11.0.0
+  conflicts_inquirer_h9_0_0:
+    inquirer: ^9.0.0
+  conflicts_simple-git_h3_0_0:
+    simple-git: ^3.0.0
 onlyBuiltDependencies:
   - esbuild
   - simple-git-hooks
+catalog:
+  '@types/fs-extra': ^11.0.0
+  '@types/inquirer': ^9.0.9
+  age-encryption: ^0.0.0
+  chalk: ^0.0.0
+  commander: ^0.0.0
+  fs-extra: ^0.0.0
+  inquirer: ^0.0.0
+  simple-git: ^0.0.0

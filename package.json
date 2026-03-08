@@ -22,6 +22,9 @@
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
+  "bin": {
+    "eassh": "./dist/index.mjs"
+  },
   "files": [
     "dist"
   ],
@@ -36,10 +39,20 @@
     "typecheck": "tsc",
     "prepare": "simple-git-hooks"
   },
+  "dependencies": {
+    "age-encryption": "^0.3.0",
+    "chalk": "^5.0.0",
+    "commander": "^12.0.0",
+    "fs-extra": "^11.0.0",
+    "inquirer": "^9.0.0",
+    "simple-git": "^3.0.0"
+  },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:cli",
     "@antfu/ni": "catalog:cli",
     "@antfu/utils": "catalog:inlined",
+    "@types/fs-extra": "catalog:",
+    "@types/inquirer": "catalog:",
     "@types/node": "catalog:types",
     "bumpp": "catalog:cli",
     "eslint": "catalog:cli",
