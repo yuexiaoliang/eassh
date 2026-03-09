@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process'
 import path from 'node:path'
 import chalk from 'chalk'
 import fs from 'fs-extra'
@@ -76,27 +77,15 @@ export async function add(): Promise<void> {
     },
   ])
 
-  const { keyPath } = await inquirer.prompt([
+  const { keyOption } = await inquirer.prompt([
     {
-      type: 'input',
-      name: 'keyPath',
-      message: '私钥文件路径',
-      validate: async (input: string) => {
-        const expandedPath = expandHome(input)
-        const exists = await fs.pathExists(expandedPath)
-        if (!exists)
-          return '文件不存在'
-        return true
-      },
-    },
-  ])
-
-  const { uploadKey } = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'uploadKey',
-      message: '是否现在上传私钥？',
-      default: true,
+      type: 'list',
+      name: 'keyOption',
+      message: '密钥选项',
+      choices: [
+        { name: '生成新密钥 (推荐)', value: 'generate' },
+        { name: '使用现有密钥', value: 'existing' },
+      ],
     },
   ])
 
@@ -104,26 +93,60 @@ export async function add(): Promise<void> {
   const keysDir = path.join(cacheDir, 'keys')
   await fs.ensureDir(keysDir)
 
-  let keyRelativePath = ''
-  if (uploadKey) {
-    const expandedKeyPath = expandHome(keyPath)
-    const keyFileName = path.basename(expandedKeyPath)
-    const encryptedPath = path.join(keysDir, `${keyFileName}.age`)
-    const pubKeyPath = `${expandedKeyPath}.pub`
-    const pubKeyDest = path.join(keysDir, `${keyFileName}.pub`)
+  const keyFileName = `${name}.key`
+  const privateKeyPath = path.join(keysDir, keyFileName)
+  const publicKeyPath = `${privateKeyPath}.pub`
+  const encryptedKeyPath = `${privateKeyPath}.age`
 
-    const password = await getPassword()
-    await encryptFile(expandedKeyPath, password)
-    await fs.move(expandedKeyPath, encryptedPath, { overwrite: true })
-
-    // 同时复制公钥到 keys 目录（公钥不需要加密）
-    const pubKeyExists = await fs.pathExists(pubKeyPath)
-    if (pubKeyExists) {
-      await fs.copy(pubKeyPath, pubKeyDest, { overwrite: true })
-      console.log(chalk.green('✓ 公钥已复制到 keys 目录'))
+  if (keyOption === 'generate') {
+    console.log(chalk.cyan('正在生成 SSH 密钥...'))
+    try {
+      execSync(`ssh-keygen -t ed25519 -f "${privateKeyPath}" -N "" -C "eassh-${name}"`, { stdio: 'inherit' })
+      console.log(chalk.green('✓ SSH 密钥已生成'))
     }
+    catch (error) {
+      console.error(chalk.red('生成密钥失败'), error)
+      return
+    }
+  }
+  else {
+    const { existingKeyPath } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'existingKeyPath',
+        message: '现有私钥文件路径',
+        validate: async (input: string) => {
+          const expandedPath = expandHome(input)
+          const exists = await fs.pathExists(expandedPath)
+          if (!exists)
+            return '文件不存在'
+          return true
+        },
+      },
+    ])
 
-    keyRelativePath = `keys/${keyFileName}.age`
+    const expandedKeyPath = expandHome(existingKeyPath)
+    await fs.copy(expandedKeyPath, privateKeyPath)
+    console.log(chalk.green('✓ 私钥已复制'))
+
+    const sourcePubKeyPath = `${expandedKeyPath}.pub`
+    const pubKeyExists = await fs.pathExists(sourcePubKeyPath)
+    if (pubKeyExists) {
+      await fs.copy(sourcePubKeyPath, publicKeyPath)
+      console.log(chalk.green('✓ 公钥已复制'))
+    }
+  }
+
+  console.log(chalk.cyan('正在加密私钥...'))
+  const password = await getPassword()
+  await encryptFile(privateKeyPath, password)
+  await fs.remove(privateKeyPath)
+  console.log(chalk.green('✓ 私钥已加密并保存'))
+
+  if (await fs.pathExists(publicKeyPath)) {
+    console.log(chalk.cyan('\n公钥内容 (需要添加到服务器的 ~/.ssh/authorized_keys):'))
+    const pubKeyContent = await fs.readFile(publicKeyPath, 'utf-8')
+    console.log(chalk.yellow(pubKeyContent.trim()))
   }
 
   const newServer = {
@@ -131,7 +154,7 @@ export async function add(): Promise<void> {
     host,
     user,
     port: Number.parseInt(port, 10),
-    key: keyRelativePath,
+    key: `keys/${keyFileName}.age`,
     label: label || undefined,
   }
 
@@ -140,14 +163,9 @@ export async function add(): Promise<void> {
 
   console.log(chalk.green('✓ 服务器已添加到 servers.json'))
 
-  if (uploadKey) {
-    console.log(chalk.green('✓ 私钥已加密并保存'))
+  await addAndCommit(cacheDir, `Add server ${name}`)
+  await pushRepo(cacheDir)
 
-    await addAndCommit(cacheDir, `Add server ${name}`)
-    await pushRepo(cacheDir)
-
-    console.log(chalk.green('✓ 推送到远程仓库'))
-  }
-
+  console.log(chalk.green('✓ 推送到远程仓库'))
   console.log(chalk.cyan('\n运行 \'eassh setup\' 更新本地配置'))
 }
