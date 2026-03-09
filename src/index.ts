@@ -1,14 +1,23 @@
 #!/usr/bin/env node
 
+import { createRequire } from 'node:module'
 import { Command } from 'commander'
 import { add, connect, encrypt, init, list, remove, setup } from './commands/index.js'
+
+const require = createRequire(import.meta.url)
+const { version } = require('../package.json')
 
 const program = new Command()
 
 program
   .name('essh')
   .description('服务器配置管理中心')
-  .version('0.0.1')
+  .version(version, '-v, --version')
+
+// 如果没有参数，默认执行 connect
+if (process.argv.length === 2) {
+  process.argv.push('connect')
+}
 
 program
   .command('init')
