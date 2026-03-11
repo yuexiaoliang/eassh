@@ -7,58 +7,64 @@ import { add, connect, encrypt, init, list, remove, setup } from './commands/ind
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json')
 
+// Handle Ctrl+C gracefully
+process.on('SIGINT', () => {
+  console.log('\nExited')
+  process.exit(0)
+})
+
 const program = new Command()
 
 program
   .name('essh')
-  .description('服务器配置管理中心')
+  .description('SSH Config Manager - Manage SSH keys and server configurations')
   .version(version, '-v, --version')
 
-// 如果没有参数，默认执行 connect
+// If no arguments, default to connect
 if (process.argv.length === 2) {
   process.argv.push('connect')
 }
 
 program
   .command('init')
-  .description('初始化配置，克隆私有仓库')
-  .option('-d, --dir <path>', '指定配置仓库克隆目录（默认：~/.essh/cache）')
+  .description('Initialize config, clone private repository')
+  .option('-d, --dir <path>', 'Specify config repo clone directory (default: ~/.essh/cache)')
   .action(init)
 
 program
   .command('setup')
-  .description('解密密钥并配置 SSH')
+  .description('Decrypt keys and configure SSH')
   .action(setup)
 
 program
   .command('connect [name]')
-  .description('连接服务器')
+  .description('Connect to a server')
   .action(connect)
 
 program
   .command('list')
-  .description('列出所有服务器')
+  .description('List all servers')
   .action(list)
 
 program
   .command('add')
-  .description('添加新服务器')
+  .description('Add a new server')
   .action(add)
 
 program
   .command('encrypt')
-  .description('重新加密并推送')
+  .description('Re-encrypt and push')
   .action(encrypt)
 
 program
   .command('remove [name]')
-  .description('删除服务器')
+  .description('Remove a server')
   .action(remove)
 
 program.on('command:*', async (operands) => {
   const command = operands[0]
   if (command) {
-    // 未知命令视为服务器名，尝试连接
+    // Unknown command treated as server name, try to connect
     await connect(command)
   }
 })

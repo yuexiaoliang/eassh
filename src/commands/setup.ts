@@ -6,14 +6,14 @@ import { decryptAllKeys, updateSSHConfig } from '../core/ssh.js'
 export async function setup(): Promise<void> {
   const config = await loadGlobalConfig()
   if (!config) {
-    console.log(chalk.red('请先运行 essh init 初始化配置'))
+    console.log(chalk.red('Please run "essh init" first to initialize config'))
     process.exit(1)
   }
 
-  console.log(chalk.green('✓ 正在拉取最新配置...'))
+  console.log(chalk.green('Pulling latest config...'))
   await pullRepo()
 
-  console.log(chalk.green('✓ 正在解密密钥...'))
+  console.log(chalk.green('Decrypting keys...'))
   const password = await getPassword()
   const repoPath = expandHome(config.repoPath)
 
@@ -22,20 +22,20 @@ export async function setup(): Promise<void> {
   }
   catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error)
-    console.log(chalk.red(`✗ ${errorMsg}`))
+    console.log(chalk.red(`Failed: ${errorMsg}`))
     process.exit(1)
   }
 
-  console.log(chalk.green('✓ 正在生成 SSH config...'))
+  console.log(chalk.green('Generating SSH config...'))
   const servers = await loadServers()
   await updateSSHConfig(servers)
 
-  console.log(chalk.green('✓ 设置文件权限...'))
+  console.log(chalk.green('Setting file permissions...'))
 
-  console.log(chalk.cyan('\n可用服务器：'))
+  console.log(chalk.cyan('\nAvailable servers:'))
   for (const server of servers) {
     console.log(`  - ${server.name} (${server.host})${server.label ? ` - ${server.label}` : ''}`)
   }
 
-  console.log(chalk.cyan('\n运行 \'essh connect\' 开始连接'))
+  console.log(chalk.cyan('\nRun "essh connect" to connect'))
 }

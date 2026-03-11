@@ -5,11 +5,11 @@ export async function list(): Promise<void> {
   const servers = await loadServers()
 
   if (servers.length === 0) {
-    console.log(chalk.yellow('没有可用的服务器'))
+    console.log(chalk.yellow('No servers available'))
     return
   }
 
-  console.log(chalk.cyan(`服务器列表 (共 ${servers.length} 个):\n`))
+  console.log(chalk.cyan(`Server list (${servers.length} total):\n`))
 
   console.log(
     chalk.gray('  NAME    ')

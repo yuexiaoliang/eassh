@@ -11,22 +11,22 @@ export async function encrypt(): Promise<void> {
 
   const exists = await fs.pathExists(keysDir)
   if (!exists) {
-    console.log(chalk.yellow('没有密钥文件需要加密'))
+    console.log(chalk.yellow('No key files to encrypt'))
     return
   }
 
   const files = await fs.readdir(keysDir)
-  // 只加密私钥文件（不以 .pub 和 .age 结尾的文件）
+  // Only encrypt private key files (files not ending with .pub and .age)
   const keyFiles = files.filter(f => !f.endsWith('.age') && !f.endsWith('.pub') && !f.startsWith('.'))
 
   if (keyFiles.length === 0) {
-    console.log(chalk.yellow('没有密钥文件需要加密'))
+    console.log(chalk.yellow('No key files to encrypt'))
     return
   }
 
   const password = await getPassword()
 
-  console.log(chalk.green(`✓ 加密 ${keyFiles.length} 个密钥文件`))
+  console.log(chalk.green(`Encrypting ${keyFiles.length} key files`))
 
   for (const file of keyFiles) {
     const inputPath = path.join(keysDir, file)
@@ -37,6 +37,6 @@ export async function encrypt(): Promise<void> {
   await addAndCommit(cacheDir, 'Encrypt keys')
   await pushRepo(cacheDir)
 
-  console.log(chalk.green('✓ 提交更改到本地仓库'))
-  console.log(chalk.green('✓ 推送到远程仓库'))
+  console.log(chalk.green('Committed changes locally'))
+  console.log(chalk.green('Pushed to remote repository'))
 }

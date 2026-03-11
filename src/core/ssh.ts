@@ -83,7 +83,7 @@ export async function decryptAllKeys(cacheDir: string, password: string): Promis
 
   const exists = await fs.pathExists(keysDir)
   if (!exists) {
-    console.log('没有找到 keys 目录')
+    console.log('Keys directory not found')
     return
   }
 
@@ -91,7 +91,7 @@ export async function decryptAllKeys(cacheDir: string, password: string): Promis
   const ageFiles = files.filter(f => f.endsWith('.age'))
 
   if (ageFiles.length === 0) {
-    console.log('没有找到加密的密钥文件')
+    console.log('No encrypted key files found')
     return
   }
 
@@ -111,11 +111,11 @@ export async function decryptAllKeys(cacheDir: string, password: string): Promis
     catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error)
       if (errorMsg.includes('no identity matched')) {
-        throw new Error('密码错误，无法解密密钥')
+        throw new Error('Wrong password, unable to decrypt key')
       }
-      throw new Error(`解密 ${file} 失败: ${errorMsg}`)
+      throw new Error(`Failed to decrypt ${file}: ${errorMsg}`)
     }
   }
 
-  console.log(`✓ 成功解密 ${successCount} 个密钥`)
+  console.log(`Successfully decrypted ${successCount} keys`)
 }

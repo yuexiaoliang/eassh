@@ -3,6 +3,7 @@ import path from 'node:path'
 import chalk from 'chalk'
 import fs from 'fs-extra'
 import inquirer from 'inquirer'
+import simpleGit from 'simple-git'
 import { ensureConfigDir, expandHome, getCacheDir, loadGlobalConfig, saveGlobalConfig } from '../core/config.js'
 import { cloneRepo } from '../core/git.js'
 
@@ -13,12 +14,12 @@ export interface InitOptions {
 export async function init(options?: InitOptions): Promise<void> {
   const existingConfig = await loadGlobalConfig()
   if (existingConfig) {
-    console.log(chalk.yellow('配置文件已存在'))
+    console.log(chalk.yellow('Config file already exists'))
     const { overwrite } = await inquirer.prompt([
       {
         type: 'confirm',
         name: 'overwrite',
-        message: '是否覆盖现有配置？',
+        message: 'Overwrite existing config?',
         default: false,
       },
     ])
@@ -30,109 +31,147 @@ export async function init(options?: InitOptions): Promise<void> {
     {
       type: 'input',
       name: 'repoUrl',
-      message: '请输入你的私有配置仓库地址 (GitHub/GitLab)',
+      message: 'Enter your private config repository URL (GitHub/GitLab)',
       validate: (input: string) => {
         if (!input)
-          return '请输入仓库地址'
+          return 'Please enter repository URL'
         if (!input.includes('github.com') && !input.includes('gitlab.com')) {
-          return '请输入有效的 GitHub 或 GitLab 仓库地址'
+          return 'Please enter a valid GitHub or GitLab repository URL'
         }
         return true
       },
     },
   ])
 
-  // 确定目标目录
+  // Determine target directory
   let targetPath: string
   if (options?.dir) {
     targetPath = expandHome(options.dir)
-    console.log(chalk.green(`✓ 正在创建配置目录：${targetPath}...`))
+    console.log(chalk.green(`Creating config directory: ${targetPath}...`))
     await fs.ensureDir(targetPath)
   }
   else {
     targetPath = getCacheDir()
-    console.log(chalk.green('✓ 正在创建配置目录...'))
+    console.log(chalk.green('Creating config directory...'))
     await ensureConfigDir()
   }
 
-  console.log(chalk.green('✓ 正在克隆配置仓库...'))
+  console.log(chalk.green('Cloning config repository...'))
   await cloneRepo(repoUrl, targetPath)
 
-  // 生成默认配置文件（如果不存在）
-  console.log(chalk.green('✓ 正在检查配置文件...'))
+  // Detect main branch
+  console.log(chalk.green('Detecting main branch...'))
+  const branch = await detectMainBranch(targetPath)
+  console.log(chalk.green(`Main branch: ${branch}`))
+
+  // Generate default config files if not exists
+  console.log(chalk.green('Checking config files...'))
   await generateDefaultConfig(targetPath)
 
   const config: GlobalConfig = {
     repoUrl,
     repoPath: options?.dir ? targetPath : '~/.essh/cache',
     encrypted: true,
+    branch,
   }
 
   await saveGlobalConfig(config)
 
-  console.log(chalk.green('✓ 设置完成！'))
-  console.log(chalk.cyan('\n现在可以运行 \'essh setup\' 来解密密钥'))
+  console.log(chalk.green('Setup complete!'))
+  console.log(chalk.cyan('\nNow you can run "essh setup" to decrypt keys'))
 }
 
 /**
- * 生成默认配置文件（如果不存在）
+ * Detect the main branch of the repository
+ */
+async function detectMainBranch(repoPath: string): Promise<string> {
+  const git = simpleGit(repoPath)
+  const branches = await git.branch(['-a'])
+
+  // Check local branches first
+  if (branches.current) {
+    return branches.current
+  }
+
+  // Check remote branches
+  const hasRemoteMain = branches.all.includes('remotes/origin/main')
+  const hasRemoteMaster = branches.all.includes('remotes/origin/master')
+
+  if (hasRemoteMain) {
+    // Checkout main branch
+    await git.checkout(['-b', 'main', '--track', 'origin/main'])
+    return 'main'
+  }
+
+  if (hasRemoteMaster) {
+    // Checkout master branch
+    await git.checkout(['-b', 'master', '--track', 'origin/master'])
+    return 'master'
+  }
+
+  // Default to main
+  return 'main'
+}
+
+/**
+ * Generate default config files if not exists
  */
 async function generateDefaultConfig(targetPath: string): Promise<void> {
   const serversFile = path.join(targetPath, 'servers.json')
   const readmeFile = path.join(targetPath, 'README.md')
   const keysDir = path.join(targetPath, 'keys')
 
-  // 生成 servers.json
+  // Generate servers.json
   const serversExists = await fs.pathExists(serversFile)
   if (!serversExists) {
     const defaultServers: ServersData = {
       servers: [],
     }
     await fs.writeJson(serversFile, defaultServers, { spaces: 2 })
-    console.log(chalk.green('✓ 已生成默认 servers.json'))
+    console.log(chalk.green('Generated default servers.json'))
   }
 
-  // 生成 README.md
+  // Generate README.md
   const readmeExists = await fs.pathExists(readmeFile)
   if (!readmeExists) {
-    const defaultReadme = `# 我的服务器配置
+    const defaultReadme = `# ESSH - SSH Config Manager
 
-## 快速开始
+## Quick Start
 
-### 新机器初始化
+### New Machine Setup
 
 \`\`\`bash
-# 1. 安装 Node.js
-# 2. 运行初始化
+# 1. Install Node.js
+# 2. Run initialization
 npx essh init
 
-# 3. 解密配置
+# 3. Decrypt config
 npx essh setup
 
-# 4. 连接服务器
+# 4. Connect to servers
 npx essh connect
 \`\`\`
 
-## 添加新服务器
+## Add New Server
 
 \`\`\`bash
 npx essh add
 \`\`\`
 
-## 安全说明
+## Security
 
-- 所有密钥已用 age 加密
-- 解密密码存储在密码管理器中
-- 私钥永远不会以明文形式提交到 Git
+- All keys are encrypted with age
+- Decryption password is stored in password manager
+- Private keys are never committed to Git in plain text
 `
     await fs.writeFile(readmeFile, defaultReadme, 'utf-8')
-    console.log(chalk.green('✓ 已生成默认 README.md'))
+    console.log(chalk.green('Generated default README.md'))
   }
 
-  // 创建 keys 目录
+  // Create keys directory
   const keysExists = await fs.pathExists(keysDir)
   if (!keysExists) {
     await fs.ensureDir(keysDir)
-    console.log(chalk.green('✓ 已创建 keys 目录'))
+    console.log(chalk.green('Created keys directory'))
   }
 }

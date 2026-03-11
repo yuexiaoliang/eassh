@@ -1,6 +1,6 @@
 import fs from 'fs-extra'
 import simpleGit from 'simple-git'
-import { getCacheDir } from './config.js'
+import { getCacheDir, loadGlobalConfig } from './config.js'
 
 export async function cloneRepo(url: string, repoPath?: string): Promise<void> {
   const targetPath = repoPath || getCacheDir()
@@ -18,13 +18,65 @@ export async function cloneRepo(url: string, repoPath?: string): Promise<void> {
 export async function pullRepo(repoPath?: string): Promise<void> {
   const targetPath = repoPath || getCacheDir()
   const git = simpleGit(targetPath)
-  await git.pull()
+  const config = await loadGlobalConfig()
+  const branch = config?.branch || 'main'
+
+  // 先获取远程更新
+  await git.fetch(['origin'])
+
+  // 检查是否在正确的分支上
+  const status = await git.status()
+  if (status.current !== branch) {
+    // 尝试切换到配置的分支
+    const branches = await git.branch(['-a'])
+    const localBranchExists = branches.all.includes(branch)
+    const remoteBranch = `remotes/origin/${branch}`
+    const remoteBranchExists = branches.all.includes(remoteBranch)
+
+    if (localBranchExists) {
+      await git.checkout(branch)
+    }
+    else if (remoteBranchExists) {
+      await git.checkout(['-b', branch, '--track', remoteBranch])
+    }
+    else {
+      // 创建本地分支
+      await git.checkout(['-b', branch])
+    }
+  }
+
+  // 拉取更新
+  await git.pull('origin', branch)
 }
 
 export async function pushRepo(repoPath?: string): Promise<void> {
   const targetPath = repoPath || getCacheDir()
   const git = simpleGit(targetPath)
-  await git.push()
+  const config = await loadGlobalConfig()
+  const branch = config?.branch || 'main'
+
+  // 检查是否在正确的分支上
+  const status = await git.status()
+  if (status.current !== branch) {
+    // 尝试切换到配置的分支
+    const branches = await git.branch(['-a'])
+    const localBranchExists = branches.all.includes(branch)
+    const remoteBranch = `remotes/origin/${branch}`
+    const remoteBranchExists = branches.all.includes(remoteBranch)
+
+    if (localBranchExists) {
+      await git.checkout(branch)
+    }
+    else if (remoteBranchExists) {
+      await git.checkout(['-b', branch, '--track', remoteBranch])
+    }
+    else {
+      // 创建本地分支并设置上游
+      await git.checkout(['-b', branch])
+    }
+  }
+
+  await git.push('origin', branch)
 }
 
 export async function addAndCommit(repoPath: string, message: string): Promise<void> {

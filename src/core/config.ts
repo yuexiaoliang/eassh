@@ -1,10 +1,11 @@
-import type { GlobalConfig, ServerConfig, ServersData } from './types.js'
+import type { GlobalConfig, HistoryData, ServerConfig, ServersData } from './types.js'
 import os from 'node:os'
 import path from 'node:path'
 import fs from 'fs-extra'
 
 const CONFIG_DIR = path.join(os.homedir(), '.essh')
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json')
+const HISTORY_FILE = path.join(CONFIG_DIR, 'history.json')
 const CACHE_DIR = path.join(CONFIG_DIR, 'cache')
 const SSH_DIR = path.join(os.homedir(), '.ssh')
 const ESSH_SSH_DIR = path.join(SSH_DIR, 'essh')
@@ -90,23 +91,23 @@ export async function getPassword(): Promise<string> {
     // 读取失败，继续让用户输入
   }
 
-  // 3. 提示用户输入
+  // 3. Prompt user for password
   const inquirer = await import('inquirer')
   const { password } = await inquirer.default.prompt([
     {
       type: 'password',
       name: 'password',
-      message: '请输入加密密码：',
+      message: 'Enter encryption password:',
       mask: '*',
     },
   ])
 
-  // 4. 保存密码到文件
+  // 4. Save password to file
   try {
     await fs.writeFile(PASSWORD_FILE, password, { mode: 0o600 })
   }
   catch (error) {
-    console.warn('警告：无法保存密码文件，每次操作都需要输入密码')
+    console.warn('Warning: Unable to save password file. You will need to enter password for each operation')
   }
 
   return password
@@ -117,4 +118,38 @@ export function expandHome(filepath: string): string {
     return filepath.replace(/^~/, os.homedir())
   }
   return filepath
+}
+
+export async function loadHistory(): Promise<HistoryData> {
+  try {
+    const exists = await fs.pathExists(HISTORY_FILE)
+    if (!exists)
+      return {}
+    return await fs.readJson(HISTORY_FILE) as HistoryData
+  }
+  catch {
+    return {}
+  }
+}
+
+export async function saveHistory(history: HistoryData): Promise<void> {
+  await fs.writeJson(HISTORY_FILE, history, { spaces: 2 })
+}
+
+export async function updateServerHistory(serverName: string): Promise<void> {
+  const history = await loadHistory()
+  const now = new Date().toISOString()
+
+  if (history[serverName]) {
+    history[serverName].lastConnected = now
+    history[serverName].count++
+  }
+  else {
+    history[serverName] = {
+      lastConnected: now,
+      count: 1,
+    }
+  }
+
+  await saveHistory(history)
 }

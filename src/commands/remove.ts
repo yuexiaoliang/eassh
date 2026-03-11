@@ -9,7 +9,7 @@ export async function remove(name: string): Promise<void> {
   const servers = await loadServers()
 
   if (servers.length === 0) {
-    console.log(chalk.red('没有可用的服务器'))
+    console.log(chalk.red('No servers available'))
     process.exit(1)
   }
 
@@ -17,7 +17,7 @@ export async function remove(name: string): Promise<void> {
   if (name) {
     serverToRemove = servers.find(s => s.name === name)
     if (!serverToRemove) {
-      console.log(chalk.red(`未找到服务器: ${name}`))
+      console.log(chalk.red(`Server not found: ${name}`))
       process.exit(1)
     }
   }
@@ -26,7 +26,7 @@ export async function remove(name: string): Promise<void> {
       {
         type: 'list',
         name: 'server',
-        message: '选择要删除的服务器',
+        message: 'Select server to remove',
         choices: servers.map(s => ({
           name: `${s.name} (${s.host})${s.label ? ` - ${s.label}` : ''}`,
           value: s.name,
@@ -43,7 +43,7 @@ export async function remove(name: string): Promise<void> {
     {
       type: 'confirm',
       name: 'confirm',
-      message: `确认删除服务器 ${serverToRemove.name}？`,
+      message: `Confirm removing server ${serverToRemove.name}?`,
       default: false,
     },
   ])
@@ -61,35 +61,35 @@ export async function remove(name: string): Promise<void> {
     const pubKeyPath = path.join(keysDir, `${keyName}.pub`)
     const localKeyPath = path.join(esshDir, keyName)
 
-    // 删除加密的密钥文件
+    // Delete encrypted key file
     const keyExists = await fs.pathExists(keyPath)
     if (keyExists) {
       await fs.remove(keyPath)
-      console.log(chalk.green(`✓ 已删除加密密钥文件`))
+      console.log(chalk.green('Deleted encrypted key file'))
     }
 
-    // 删除公钥文件
+    // Delete public key file
     const pubKeyExists = await fs.pathExists(pubKeyPath)
     if (pubKeyExists) {
       await fs.remove(pubKeyPath)
-      console.log(chalk.green(`✓ 已删除公钥文件`))
+      console.log(chalk.green('Deleted public key file'))
     }
 
-    // 删除本地解密的密钥
+    // Delete local decrypted key
     const localKeyExists = await fs.pathExists(localKeyPath)
     if (localKeyExists) {
       await fs.remove(localKeyPath)
-      console.log(chalk.green(`✓ 已删除本地解密密钥`))
+      console.log(chalk.green('Deleted local decrypted key'))
     }
   }
 
   const newServers = servers.filter(s => s.name !== serverToRemove!.name)
   await saveServers(newServers)
 
-  console.log(chalk.green('✓ 服务器已从 servers.json 移除'))
+  console.log(chalk.green('Server removed from servers.json'))
 
   await addAndCommit(cacheDir, `Remove server ${serverToRemove.name}`)
   await pushRepo(cacheDir)
 
-  console.log(chalk.green('✓ 推送到远程仓库'))
+  console.log(chalk.green('Pushed to remote repository'))
 }

@@ -43,6 +43,7 @@
     "age-encryption": "catalog:",
     "chalk": "catalog:",
     "commander": "catalog:",
+    "enquirer": "catalog:",
     "fs-extra": "catalog:",
     "inquirer": "catalog:",
     "simple-git": "catalog:"
