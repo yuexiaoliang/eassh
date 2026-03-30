@@ -31,13 +31,13 @@ export async function init(options?: InitOptions): Promise<void> {
     {
       type: 'input',
       name: 'repoUrl',
-      message: 'Enter your private config repository URL (GitHub/GitLab)',
+      message: 'Enter your private config repository URL',
       validate: (input: string) => {
         if (!input)
           return 'Please enter repository URL'
-        if (!input.includes('github.com') && !input.includes('gitlab.com')) {
-          return 'Please enter a valid GitHub or GitLab repository URL'
-        }
+        const trimmed = input.trim()
+        if (!trimmed.startsWith('http') && !trimmed.startsWith('git@') && !trimmed.startsWith('git://'))
+          return 'Please enter a valid git repository URL'
         return true
       },
     },
