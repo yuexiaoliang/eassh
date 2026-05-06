@@ -4,6 +4,8 @@
 
 一个简洁的服务器 SSH 配置管理 CLI 工具。
 
+https://github.com/user-attachments/assets/4e59df99-b0a5-4b17-97b1-7a55404d4049
+
 ## 功能特性
 
 - 🔐 使用 [age](https://github.com/FiloSottile/age) 加密保护私钥
