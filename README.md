@@ -4,6 +4,8 @@ English | [简体中文](./README.zh-CN.md)
 
 A lightweight CLI tool for managing SSH configurations and server connections.
 
+https://github.com/user-attachments/assets/4e59df99-b0a5-4b17-97b1-7a55404d4049
+
 ## Features
 
 - 🔐 Secure key encryption using [age](https://github.com/FiloSottile/age)
