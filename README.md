@@ -64,6 +64,19 @@ essh connect <name>
 | `essh remove [name]` | Remove a server |
 | `essh encrypt` | Re-encrypt and push to repository |
 
+## Agent Skill
+
+essh provides an Agent Skill to help AI agents correctly query servers and execute remote maintenance commands.
+
+The skill source is at `skills/essh/SKILL.md`.
+
+Once installed, when you mention essh or SSH server management, the Agent will automatically use this skill to:
+
+- Query available servers via `essh list`
+- Run commands remotely using `ssh essh-<name> "<command>"`
+- Check if keys are decrypted and guide you through setup
+- Avoid interactive commands that would hang in an Agent environment
+
 ## Configuration Repository Structure
 
 Your private repository should contain:

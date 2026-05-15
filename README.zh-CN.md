@@ -64,6 +64,19 @@ essh connect <name>
 | `essh remove [name]` | 删除服务器 |
 | `essh encrypt` | 重新加密并推送到仓库 |
 
+## Agent Skill
+
+essh 提供了 Agent Skill，帮助 AI Agent 正确查询服务器并在远程执行运维命令。
+
+Skill 源文件位于 `skills/essh/SKILL.md`。
+
+当你提到 essh 或 SSH 服务器管理时，Agent 会自动使用该 skill，能够：
+
+- 通过 `essh list` 查询可用服务器
+- 使用 `ssh essh-<name> "<command>"` 在远程执行命令
+- 自动检查密钥是否已解密，并引导你完成 setup
+- 避免在 Agent 环境中使用会导致进程卡死的交互式命令
+
 ## 配置仓库结构
 
 私有仓库应包含以下文件：
